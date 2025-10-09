@@ -1,5 +1,6 @@
-import { PokemonCard } from './card';
+import { PokemonInfoCard, PokemonSpriteCard } from './card';
 
 export {
-    PokemonCard
+    PokemonInfoCard,
+    PokemonSpriteCard
 }
