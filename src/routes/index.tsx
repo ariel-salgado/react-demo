@@ -1,12 +1,12 @@
-import type { Pokemon, PokemonSpecies } from '@/lib/api/pokemon'
+import type { Pokemon } from '@/lib/api/pokemon';
 
 import { LoaderCircle } from 'lucide-react';
 import { createFileRoute } from '@tanstack/react-router'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 import { pokemonAPI } from '@/lib/api/pokemon'
 import { useInfiniteScroll } from '@/lib/hooks';
-import { PokemonCard } from '@/lib/components/pokemon'
+import { PokemonInfoCard } from '@/lib/components/pokemon'
 import { FormGroup, Label, Select } from '@/lib/components/ui'
 
 export const Route = createFileRoute('/')({
@@ -22,74 +22,49 @@ function IndexRoute() {
 
   const { generations } = Route.useLoaderData();
 
-  const [offset, setOffset] = useState<number>(0);
-  const [pokemon, setPokemon] = useState<Pokemon[]>([]);
-  const [hasMore, setHasMore] = useState<boolean>(true);
   const [loading, setLoading] = useState<boolean>(false);
 
-  const [pokemonSpecies, setPokemonSpecies] = useState<PokemonSpecies[]>([]);
+  const [pokemon, setPokemon] = useState<Pokemon[]>([]);
+  const [allPokemon, setAllPokemon] = useState<(Pokemon | null)[]>([]);
   const [selectedGeneration, setSelectedGeneration] = useState<string>(generations[0].name);
-
-  const loadingRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (!selectedGeneration) {
       return;
     }
 
-    setOffset(0);
     setPokemon([]);
-    setHasMore(true);
-    setPokemonSpecies([]);
+    setAllPokemon([]);
 
     const loadGeneration = async () => {
-      const species = await pokemonAPI.getGenerationDetails(selectedGeneration);
-      setPokemonSpecies(species);
+      setLoading(true);
+
+      const pokemonData = await pokemonAPI.getPokemonByGeneration(selectedGeneration);
+      const validPokemon = pokemonData.filter((p): p is Pokemon => p !== null);
+
+      setAllPokemon(validPokemon);
+      setPokemon(validPokemon.slice(0, LIMIT));
+
+      setLoading(false);
     };
 
     loadGeneration();
   }, [selectedGeneration]);
 
-  const loadPokemonBatch = useCallback(async (species: PokemonSpecies[], off: number) => {
-    if (loadingRef.current) {
-      return
+  const loadMore = useCallback(() => {
+    if (loading || pokemon.length >= allPokemon.length) {
+      return;
     }
 
-    setLoading(true)
-    loadingRef.current = true
+    const nextBatch = allPokemon.slice(pokemon.length, pokemon.length + LIMIT);
 
-    const batch = species.slice(off, off + LIMIT)
-
-    if (batch.length === 0) {
-      setHasMore(false)
-      setLoading(false)
-      loadingRef.current = false
-      return
-    }
-
-    const results = await pokemonAPI.getPokemonBatch(batch)
-
-    setPokemon(prev => off === 0 ? results : [...prev, ...results])
-    setHasMore(off + LIMIT < species.length)
-
-    setLoading(false)
-    loadingRef.current = false
-  }, [])
-
-  useEffect(() => {
-    if (pokemonSpecies.length > 0) {
-      loadPokemonBatch(pokemonSpecies, 0)
-    }
-  }, [pokemonSpecies, loadPokemonBatch])
+    setPokemon(prev => [...prev, ...nextBatch] as Pokemon[]);
+  }, [loading, pokemon.length, allPokemon]);
 
   const lastPokemonRef = useInfiniteScroll({
-    hasMore,
-    loading: loadingRef.current,
-    onLoadMore: () => {
-      const newOffset = offset + LIMIT;
-      setOffset(newOffset);
-      loadPokemonBatch(pokemonSpecies, newOffset);
-    },
+    hasMore: pokemon.length < allPokemon.length,
+    loading,
+    onLoadMore: loadMore,
   });
 
   return (
@@ -104,32 +79,31 @@ function IndexRoute() {
           <Select
             value={selectedGeneration}
             onChange={(v) => setSelectedGeneration(v)}
-            options={generations.map(gen => {
-              return {
-                value: gen.name,
-                label: gen.name.replace('-', ' ')
-              }
-            })}
+            options={generations.map(gen => ({
+              value: gen.name,
+              label: gen.name.replace('-', ' ')
+            }))}
           />
         </FormGroup>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {pokemon.map((p, index) => (
-            <PokemonCard
-              key={index}
+            <PokemonInfoCard
+              key={p.id}
               pokemon={p}
-              ref={index === pokemon.length - 1 ? lastPokemonRef : undefined} />
+              ref={index === pokemon.length - 1 ? lastPokemonRef : undefined}
+            />
           ))}
         </div>
 
-        {loading && (
+        {loading && pokemon.length === 0 && (
           <div className="text-center py-12">
-            <LoaderCircle className='animate-spin size-8 stroke-3 align-middle inline-block' />
+            <LoaderCircle className='animate-spin size-8 stroke-3 align-middle inline-block stroke-primary' />
             <p className="text-foreground">Loading Pokemon...</p>
           </div>
         )}
 
-        {!hasMore && pokemon.length > 0 && (
+        {pokemon.length >= allPokemon.length && pokemon.length > 0 && (
           <p className="text-center py-12 text-muted-foreground">
             You've seen all Pokemon from this generation!
           </p>
