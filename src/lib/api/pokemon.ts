@@ -1,104 +1,107 @@
-export interface Generation {
-  name: string;
-  url: string;
+interface Stat {
+  base_stat: number
+  effort: number
+  stat: { name: string }
 }
 
-export interface PokemonSpecies {
-  name: string;
-  id: number;
+interface Type {
+  slot: number
+  type: { name: string }
 }
 
 export interface Pokemon {
   id: number;
   name: string;
-  sprite: string | null;
-}
-
-interface GenerationListResponse {
-  count: number;
-  next: string | null;
-  previous: string | null;
-  results: Generation[];
-}
-
-interface GenerationDetailsResponse {
-  id: number;
-  name: string;
-  pokemon_species: {
-    name: string;
-    url: string;
-  }[];
-}
-
-interface PokemonResponse {
-  id: number;
-  name: string;
-  sprites: {
-    front_default: string | null;
-    back_default?: string | null;
-    front_shiny?: string | null;
-    back_shiny?: string | null;
+  height: number;
+  cries: {
+    latest: string;
+    legacy: string;
   };
-  types: Array<{
-    slot: number;
-    type: {
-      name: string;
-      url: string;
-    };
-  }>;
+  sprites: {
+    back_default: string
+    front_default: string
+    back_shiny: string
+    front_shiny: string
+  }
+  stats: Stat[]
+  types: Type[]
+}
+
+export interface Generation {
+  url: string;
+  name: string;
+}
+
+export interface PokemonSpecies {
+  id: number;
+  name: string;
 }
 
 const POKEMON_API_URL = 'https://pokeapi.co/api/v2';
 
 class PokemonAPI {
-  async getGenerations(limit: number = 8): Promise<Generation[]> {
-    const response = await fetch(`${POKEMON_API_URL}/generation`);
+  async getGenerations(limit: number = 9): Promise<Generation[]> {
+    const response = await fetch(`${POKEMON_API_URL}/generation/?limit=${limit}`);
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch generations: ${response.status}`);
+      console.error(`Failed to fetch generations: ${response.status}`);
+      return [];
     }
 
-    const data: GenerationListResponse = await response.json();
-    return data.results.slice(0, limit);
+    const data = await response.json();
+    return data.results as Generation[];
   }
 
-  async getGenerationDetails(generationName: string): Promise<PokemonSpecies[]> {
-    const response = await fetch(`${POKEMON_API_URL}/generation/${generationName}`);
+  async getPokemonListByGeneration(generation: string | number): Promise<PokemonSpecies[]> {
+    const response = await fetch(`${POKEMON_API_URL}/generation/${generation}`);
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch generation details: ${response.status}`);
+      console.error(`Failed to fetch generations: ${response.status}`);
+      return [];
     }
 
-    const data: GenerationDetailsResponse = await response.json();
+    const data = await response.json();
     
-    return data.pokemon_species
-      .map(s => {
-        const idStr = s.url.split('/').filter(Boolean).pop();
-        const id = idStr ? parseInt(idStr, 10) : NaN;
-        return { name: s.name, id };
+    return (data.pokemon_species as Generation[])
+      .map(({ name, url }) => {
+        const id = Number(url.split('/').filter(Boolean).pop());
+        return { name, id };
       })
-      .filter((s): s is PokemonSpecies => !isNaN(s.id))
-      .sort((a, b) => a.id - b.id);
+      .filter((species): species is PokemonSpecies => !isNaN(species.id))
+      .sort((prev, next) => prev.id - next.id) as PokemonSpecies[];
   }
 
-  async getPokemon(id: number): Promise<Pokemon> {
+  async getPokemon(id: string | number): Promise<Pokemon | null> {
     const response = await fetch(`${POKEMON_API_URL}/pokemon/${id}`);
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch pokemon ${id}: ${response.status}`);
+      console.error(`Failed to fetch ${id} data: ${response.status}`);
+      return null;
     }
 
-    const data: PokemonResponse = await response.json();
+    const data = await response.json();
     
     return {
       id: data.id,
       name: data.name,
-      sprite: data.sprites.front_default
-    };
+      height: data.height,
+      cries: {
+        latest: data.cries.latest,
+      },
+      sprites: {
+        back_default: data.sprites.back_default,
+        front_default: data.sprites.front_default,
+        back_shiny: data.sprites.back_shiny,
+        front_shiny: data.sprites.front_shiny,
+      },
+      stats: data.stats,
+      types: data.types,
+    } as Pokemon;
   }
 
-  async getPokemonBatch(speciesList: PokemonSpecies[]): Promise<Pokemon[]> {
-    return Promise.all(speciesList.map(s => this.getPokemon(s.id)));
+  async getPokemonByGeneration(generation: string | number): Promise<(Pokemon | null)[]> {
+    const pokemon_list = await this.getPokemonListByGeneration(generation);
+    return Promise.all(pokemon_list.map(({ name }) => this.getPokemon(name)))
   }
 }
 
