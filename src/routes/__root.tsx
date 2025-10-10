@@ -36,8 +36,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body>
         <div className='min-h-screen bg-background text-foreground font-mono'>
           <header className='pt-24'>
-            <h1>
-              <Link to="/" className="block text-6xl font-bold text-center text-primary mb-8 hover:underline focus-within:underline underline-offset-6 decoration-4 cursor-pointer">
+            <h1 className='w-fit mx-auto'>
+              <Link to="/" className="block text-6xl font-bold text-primary mb-8 hover:underline focus-within:underline underline-offset-6 decoration-4 cursor-pointer">
                 Pokedex App
               </Link>
             </h1>
