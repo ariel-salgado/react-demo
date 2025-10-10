@@ -1,4 +1,4 @@
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
+import { HeadContent, Link, Scripts, createRootRoute } from '@tanstack/react-router'
 
 import appCss from '../styles.css?url'
 
@@ -35,7 +35,14 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <div className='min-h-screen bg-background text-foreground font-mono'>
-          <main className="size-full">
+          <header className='pt-24'>
+            <h1>
+              <Link to="/" className="block text-6xl font-bold text-center text-primary mb-8 hover:underline focus-within:underline underline-offset-6 decoration-4 cursor-pointer">
+                Pokedex App
+              </Link>
+            </h1>
+          </header>
+          <main className="size-full px-6 pb-24">
             {children}
           </main>
         </div>

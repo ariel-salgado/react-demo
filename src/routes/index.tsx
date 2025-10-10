@@ -68,47 +68,41 @@ function IndexRoute() {
   });
 
   return (
-    <div className="px-6 py-24">
-      <div className="max-w-6xl mx-auto space-y-8">
-        <h1 className="text-6xl font-bold text-center text-primary">
-          Pokedex App
-        </h1>
+    <div className="max-w-6xl mx-auto space-y-8">
+      <FormGroup>
+        <Label>Select Generation</Label>
+        <Select
+          value={selectedGeneration}
+          onChange={(v) => setSelectedGeneration(v)}
+          options={generations.map(gen => ({
+            value: gen.name,
+            label: gen.name.replace('-', ' ')
+          }))}
+        />
+      </FormGroup>
 
-        <FormGroup>
-          <Label>Select Generation</Label>
-          <Select
-            value={selectedGeneration}
-            onChange={(v) => setSelectedGeneration(v)}
-            options={generations.map(gen => ({
-              value: gen.name,
-              label: gen.name.replace('-', ' ')
-            }))}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {pokemon.map((p, index) => (
+          <PokemonInfoCard
+            key={p.id}
+            pokemon={p}
+            ref={index === pokemon.length - 1 ? lastPokemonRef : undefined}
           />
-        </FormGroup>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {pokemon.map((p, index) => (
-            <PokemonInfoCard
-              key={p.id}
-              pokemon={p}
-              ref={index === pokemon.length - 1 ? lastPokemonRef : undefined}
-            />
-          ))}
-        </div>
-
-        {loading && pokemon.length === 0 && (
-          <div className="text-center py-12">
-            <LoaderCircle className='animate-spin size-8 stroke-3 align-middle inline-block stroke-primary' />
-            <p className="text-foreground">Loading Pokemon...</p>
-          </div>
-        )}
-
-        {pokemon.length >= allPokemon.length && pokemon.length > 0 && (
-          <p className="text-center py-12 text-muted-foreground">
-            You've seen all Pokemon from this generation!
-          </p>
-        )}
+        ))}
       </div>
+
+      {loading && pokemon.length === 0 && (
+        <div className="text-center py-12">
+          <LoaderCircle className='animate-spin size-8 stroke-3 align-middle inline-block stroke-primary' />
+          <p className="text-foreground">Loading Pokemon...</p>
+        </div>
+      )}
+
+      {pokemon.length >= allPokemon.length && pokemon.length > 0 && (
+        <p className="text-center py-12 text-muted-foreground">
+          You've seen all Pokemon from this generation!
+        </p>
+      )}
     </div>
   )
 }
