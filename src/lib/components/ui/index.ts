@@ -1,9 +1,10 @@
 import { Button } from './button';
-import { FormGroup, Label, Select } from './forms';
+import { FormGroup, Label, Select, Input } from './forms';
 
 export {
     Button,
     FormGroup,
     Label,
-    Select
+    Select,
+    Input
 }
